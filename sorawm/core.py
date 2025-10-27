@@ -62,7 +62,7 @@ class SoraWM:
             .run_async(pipe_stdin=True)
         )
 
-        frame_and_mask = {}
+        frame_bboxes = {}
         detect_missed = []
         bbox_centers = []
         bboxes = []
@@ -75,13 +75,13 @@ class SoraWM:
         ):
             detection_result = self.detector.detect(frame)
             if detection_result["detected"]:
-                frame_and_mask[idx] = {"frame": frame, "bbox": detection_result["bbox"]}
+                frame_bboxes[idx] = { "bbox": detection_result["bbox"]}
                 x1, y1, x2, y2 = detection_result["bbox"]
                 bbox_centers.append((int((x1 + x2) / 2), int((y1 + y2) / 2)))
                 bboxes.append((x1, y1, x2, y2))
 
             else:
-                frame_and_mask[idx] = {"frame": frame, "bbox": None}
+                frame_bboxes[idx] = {"bbox": None}
                 detect_missed.append(idx)
                 bbox_centers.append(None)
                 bboxes.append(None)
@@ -115,28 +115,30 @@ class SoraWM:
                     interval_idx < len(interval_bboxes)
                     and interval_bboxes[interval_idx] is not None
                 ):
-                    frame_and_mask[missed_idx]["bbox"] = interval_bboxes[interval_idx]
+                    frame_bboxes[missed_idx]["bbox"] = interval_bboxes[interval_idx]
                     logger.debug(f"Filled missed frame {missed_idx} with bbox:\n"
                     f" {interval_bboxes[interval_idx]}")
                 else:
                     # if the interval has no valid bbox, use the previous and next frame to complete (fallback strategy)
                     before = max(missed_idx - 1, 0)
                     after = min(missed_idx + 1, total_frames - 1)
-                    before_box = frame_and_mask[before]["bbox"]
-                    after_box = frame_and_mask[after]["bbox"]
+                    before_box = frame_bboxes[before]["bbox"]
+                    after_box = frame_bboxes[after]["bbox"]
                     if before_box:
-                        frame_and_mask[missed_idx]["bbox"] = before_box
+                        frame_bboxes[missed_idx]["bbox"] = before_box
                     elif after_box:
-                        frame_and_mask[missed_idx]["bbox"] = after_box
+                        frame_bboxes[missed_idx]["bbox"] = after_box
         else:
             del bboxes
             del bbox_centers
             del detect_missed
+        
+        input_video_loader = VideoLoader(input_video_path)
 
-        for idx in tqdm(range(total_frames), desc="Remove watermarks"):
-            frame_info = frame_and_mask[idx]
-            frame = frame_info["frame"]
-            bbox = frame_info["bbox"]
+        for idx, frame in enumerate(tqdm(input_video_loader, total=total_frames, desc="Remove watermarks")):
+        # for idx in tqdm(range(total_frames), desc="Remove watermarks"):
+            # frame_info = 
+            bbox = frame_bboxes[idx]["bbox"]
             if bbox is not None:
                 x1, y1, x2, y2 = bbox
                 mask = np.zeros((height, width), dtype=np.uint8)
