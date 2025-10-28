@@ -12,7 +12,7 @@ DIFFUSERS_SDXL_CLASS_NAME = "StableDiffusionXLPipeline"
 DIFFUSERS_SDXL_INPAINT_CLASS_NAME = "StableDiffusionXLInpaintPipeline"
 
 MPS_UNSUPPORT_MODELS = [
-    "lama",
+    # "lama",
     "ldm",
     "zits",
     "mat",
