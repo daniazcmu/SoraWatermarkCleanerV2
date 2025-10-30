@@ -7,6 +7,15 @@ import streamlit as st
 from sorawm.core import SoraWM
 
 
+DEFAULT_MIN_CONFIDENCE = 0.01
+DEFAULT_MASK_DILATION = 4
+DEFAULT_UPSCALE_FACTOR = 1.7
+DEFAULT_CLAHE_CLIP = 2.2
+DEFAULT_TEMPLATE_THRESHOLD = 0.80
+DEFAULT_TEMPLATE_SEARCH_EXPAND = 32
+DEFAULT_SHARPEN = True
+
+
 def main():
     st.set_page_config(
         page_title="Sora Watermark Cleaner", page_icon="🎬", layout="centered"
@@ -18,7 +27,16 @@ def main():
     # Initialize SoraWM
     if "sora_wm" not in st.session_state:
         with st.spinner("Loading AI models..."):
-            st.session_state.sora_wm = SoraWM()
+            st.session_state.sora_wm = SoraWM(
+                min_confidence=DEFAULT_MIN_CONFIDENCE,
+                upscale_factor=DEFAULT_UPSCALE_FACTOR,
+                clahe_clip_limit=DEFAULT_CLAHE_CLIP,
+                sharpen=DEFAULT_SHARPEN,
+            )
+            st.session_state.sora_wm.update_detector_params(
+                template_threshold=DEFAULT_TEMPLATE_THRESHOLD,
+                template_search_expand=DEFAULT_TEMPLATE_SEARCH_EXPAND,
+            )
 
     st.markdown("---")
 
@@ -42,7 +60,7 @@ def main():
                 "Umbral de confianza mínima",
                 min_value=0.0,
                 max_value=1.0,
-                value=0.25,
+                value=DEFAULT_MIN_CONFIDENCE,
                 step=0.01,
                 help="Filtra detecciones con confianza por debajo del umbral",
             )
@@ -51,7 +69,7 @@ def main():
                 "Dilatación de máscara (px)",
                 min_value=-64,
                 max_value=128,
-                value=4,
+                value=DEFAULT_MASK_DILATION,
                 step=1,
                 help="Expande (>0) o contrae (<0) el bbox antes de crear la máscara",
             )
@@ -60,7 +78,7 @@ def main():
                 "Reescala de preprocesado",
                 min_value=1.0,
                 max_value=2.0,
-                value=1.0,
+                value=DEFAULT_UPSCALE_FACTOR,
                 step=0.1,
                 help=">1.0 ayuda a detectar marcas pequeñas (interpolación bicúbica)",
             )
@@ -71,7 +89,7 @@ def main():
                 "CLAHE clip limit",
                 min_value=0.0,
                 max_value=4.0,
-                value=0.0,
+                value=DEFAULT_CLAHE_CLIP,
                 step=0.1,
                 help="0 desactiva; valores >0 mejoran contraste en marcas claras",
             )
@@ -80,7 +98,7 @@ def main():
                 "Umbral plantilla",
                 min_value=0.0,
                 max_value=1.0,
-                value=0.60,
+                value=DEFAULT_TEMPLATE_THRESHOLD,
                 step=0.01,
                 help="Similitud mínima para aceptar la coincidencia con la plantilla",
             )
@@ -89,12 +107,12 @@ def main():
                 "Expansión búsqueda plantilla (px)",
                 min_value=0,
                 max_value=128,
-                value=32,
+                value=DEFAULT_TEMPLATE_SEARCH_EXPAND,
                 step=4,
                 help="Radio extra alrededor del bbox de YOLO para refinar con plantilla",
             )
 
-        sharpen = st.checkbox("Nitidez (unsharp mask)", value=False)
+        sharpen = st.checkbox("Nitidez (unsharp mask)", value=DEFAULT_SHARPEN)
         template_file = st.file_uploader(
             "Plantilla del watermark (opcional)",
             type=["png", "jpg", "jpeg"],
